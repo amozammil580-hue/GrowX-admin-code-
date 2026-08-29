@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrowX Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08090d;
+  --card:#11131a;
+  --card2:#172a22;
+  --green:#00ff88;
+  --cyan:#00d9ff;
+  --red:#ff3864;
+  --yellow:#ffd43b;
+  --text:#f2f4f7;
+  --muted:#777f91;
+  --border:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(circle at top,#17251f 0%,#08090d 42%);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;padding:10px;}
+button,input{font-family:inherit;}
+button{cursor:pointer;}
+.container{width:100%;max-width:1050px;margin:auto;}
+.header{background:rgba(17,19,26,.95);border:1px solid rgba(0,255,136,.35);border-radius:15px;padding:14px;margin-bottom:10px;box-shadow:0 0 25px rgba(0,255,136,.08);}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.logo{font-family:Orbitron;color:var(--green);font-size:17px;}
+.admin-badge{font-size:9px;padding:5px 8px;border-radius:20px;color:var(--green);border:1px solid rgba(0,255,136,.35);background:rgba(0,255,136,.08);}
+.subtitle{color:var(--muted);font-size:10px;margin-top:5px;}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px;}
+.stat{background:rgba(17,19,26,.95);border:1px solid var(--border);border-radius:12px;padding:11px;}
+.stat-label{color:var(--muted);font-size:9px;margin-bottom:5px;}
+.stat-value{font-family:Orbitron;font-size:19px;color:var(--green);}
+.tabs{display:flex;gap:5px;background:var(--card);padding:5px;border-radius:12px;margin-bottom:10px;border:1px solid var(--border);overflow-x:auto;}
+.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:9px 3px;border-radius:8px;font-size:10px;font-weight:800;white-space:nowrap;min-width:fit-content;}
+.tab.active{background:linear-gradient(90deg,var(--green),var(--cyan));color:#000;}
+.section{display:none;background:rgba(17,19,26,.95);border:1px solid var(--border);border-radius:15px;padding:13px;}
+.section.active{display:block;}
+.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
+.title h2{font-family:Orbitron;font-size:13px;color:var(--green);}
+.small-count{font-size:9px;color:var(--muted);}
+.filter{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px;}
+.filter button{padding:8px 3px;border-radius:8px;border:1px solid var(--border);background:#0d0f15;color:var(--muted);font-size:9px;font-weight:700;}
+.filter button.active{color:#000;background:var(--green);}
+.transaction-list,.user-list{display:flex;flex-direction:column;gap:7px;}
+.transaction,.user-card{background:#151820;border:1px solid var(--border);border-radius:10px;padding:9px;}
+.transaction-top,.user-top{display:flex;align-items:center;justify-content:space-between;gap:7px;}
+.amount{color:var(--green);font-family:Orbitron;font-size:14px;}
+.status{font-size:7px;font-weight:800;padding:4px 6px;border-radius:9px;}
+.pending{color:var(--yellow);background:rgba(255,212,59,.1);border:1px solid rgba(255,212,59,.3);}
+.verified{color:var(--green);background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);}
+.transaction-info,.user-info{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;}
+.detail,.user-detail{font-size:8px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.detail b,.user-detail b{color:#cfd4dc;}
+.transaction-actions,.user-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
+.btn{border:0;border-radius:8px;padding:7px 10px;font-size:9px;font-weight:800;}
+.green{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.4);}
+.red{background:rgba(255,56,100,.1);color:var(--red);border:1px solid rgba(255,56,100,.4);}
+.gray{background:#1a1d26;color:#dce1e8;border:1px solid var(--border);}
+.primary{background:linear-gradient(90deg,var(--green),var(--cyan));color:#000;}
+.user-name{font-size:12px;font-weight:800;color:#fff;}
+.user-status{font-size:8px;font-weight:800;padding:4px 7px;border-radius:10px;}
+.user-active{color:var(--green);background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);}
+.user-banned{color:var(--red);background:rgba(255,56,100,.1);border:1px solid rgba(255,56,100,.3);}
+.info{background:rgba(0,217,255,.07);border-left:3px solid var(--cyan);padding:10px;border-radius:8px;font-size:9px;line-height:1.5;color:#bfc6d2;margin-bottom:11px;}
+.form-grid{display:grid;grid-template-columns:1fr;gap:8px;}
+label{color:var(--muted);font-size:9px;display:block;margin-bottom:5px;}
+input,textarea{width:100%;background:#0d0f15;border:1px solid var(--border);color:white;padding:10px;border-radius:9px;outline:none;font-size:11px;font-family:inherit;}
+input:focus,textarea:focus{border-color:var(--green);}
+input[readonly]{color:#9da5b4;cursor:not-allowed;opacity:.85;}
+textarea{resize:vertical;min-height:80px;}
+.button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;}
+.current-upi{margin-top:10px;background:#0d0f15;border:1px solid var(--border);border-radius:9px;padding:10px;}
+.current-label{font-size:8px;color:var(--muted);margin-bottom:4px;}
+.current-value{font-size:11px;font-weight:700;color:var(--green);word-break:break-all;}
+.actions{display:grid;grid-template-columns:1fr;gap:7px;}
+.action{background:#151820;border:1px solid var(--border);border-radius:10px;padding:13px 7px;text-align:center;}
+.action-icon{font-size:20px;margin-bottom:5px;}
+.action-text{font-size:9px;font-weight:700;}
+.empty{text-align:center;padding:28px 10px;color:var(--muted);font-size:10px;}
+.empty-icon{font-size:28px;margin-bottom:5px;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:15px;z-index:99;}
+.modal.show{display:flex;}
+.modal-box{width:100%;max-width:390px;max-height:85vh;overflow:auto;background:#11131a;border:1px solid var(--green);border-radius:15px;padding:15px;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;}
+.modal-head h3{font-family:Orbitron;color:var(--green);font-size:13px;}
+.close{background:none;border:0;color:var(--red);font-size:22px;}
+.edit-user-id{color:var(--muted);font-size:8px;word-break:break-all;margin-bottom:12px;}
+.save-user-btn{width:100%;margin-top:10px;}
+.notification-section{margin-bottom:15px;}
+.notification-box{background:#151820;border:1px solid var(--border);border-radius:10px;padding:13px;}
+@media(min-width:700px){
+  body{padding:20px;}
+  .stats{grid-template-columns:repeat(4,1fr);}
+  .form-grid{grid-template-columns:1fr 1fr;}
+  .transaction-info,.user-info{grid-template-columns:repeat(4,1fr);}
+}
+@media(max-width:360px){
+  body{padding:7px;}
+  .logo{font-size:14px;}
+  .stat{padding:9px;}
+  .stat-value{font-size:17px;}
+  .section{padding:10px;}
+  .tab{font-size:9px;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header class="header">
+  <div class="header-row">
+    <div class="logo">⚡ GROWX ADMIN</div>
+    <div class="admin-badge">ADMIN</div>
+  </div>
+  <div class="subtitle">Payment, subscription & user management</div>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-label">💰 TOTAL EARNINGS</div>
+    <div class="stat-value" id="totalEarnings">₹0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">✅ VERIFIED</div>
+    <div class="stat-value" id="verifiedCount">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">⏳ PENDING</div>
+    <div class="stat-value" id="pendingCount">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">👥 USERS</div>
+    <div class="stat-value" id="userCount">0</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">PAYMENTS</button>
+  <button class="tab" onclick="switchTab(1)">USERS</button>
+  <button class="tab" onclick="switchTab(2)">UPI</button>
+  <button class="tab" onclick="switchTab(3)">NOTIFICATIONS</button>
+  <button class="tab" onclick="switchTab(4)">MORE</button>
+</div>
+
+<!-- PAYMENTS SECTION -->
+<section id="section-0" class="section active">
+  <div class="title">
+    <h2>💳 PAYMENTS</h2>
+    <span class="small-count" id="userCountSmall">0 users</span>
+  </div>
+  <div class="filter">
+    <button class="filter-btn active" onclick="filterPayments('all')">All</button>
+    <button class="filter-btn" onclick="filterPayments('verified')">Verified</button>
+    <button class="filter-btn" onclick="filterPayments('pending')">Pending</button>
+  </div>
+  <div class="transaction-list" id="transactionList"></div>
+</section>
+
+<!-- USERS SECTION -->
+<section id="section-1" class="section">
+  <div class="title">
+    <h2>👥 USER MANAGEMENT</h2>
+    <span class="small-count" id="bannedCount">0 banned</span>
+  </div>
+  <div class="filter">
+    <button class="filter-btn active" onclick="filterUsers('all')">All</button>
+    <button class="filter-btn" onclick="filterUsers('active')">Active</button>
+    <button class="filter-btn" onclick="filterUsers('banned')">Banned</button>
+  </div>
+  <div class="user-list" id="userList"></div>
+</section>
+
+<!-- UPI SECTION -->
+<section id="section-2" class="section">
+  <div class="title">
+    <h2>⚙️ UPI SETTINGS</h2>
+  </div>
+  <div class="info">
+    UPI settings Firestore ke settings/payment document me save hongi.
+  </div>
+  <div class="form-grid">
+    <div>
+      <label>UPI ID</label>
+      <input type="text" id="upiId" placeholder="e.g., name@upi">
+    </div>
+    <div>
+      <label>FULL NAME</label>
+      <input type="text" id="upiName" placeholder="e.g., Your Name">
+    </div>
+  </div>
+  <div class="button-row">
+    <button class="btn primary" onclick="saveUPI()">💾 SAVE UPI</button>
+    <button class="btn gray" onclick="copyUPI()">📋 COPY UPI</button>
+  </div>
+  <div class="current-upi">
+    <div class="current-label">Current UPI</div>
+    <div class="current-value" id="currentUPI">Not set yet</div>
+  </div>
+</section>
+
+<!-- NOTIFICATIONS SECTION -->
+<section id="section-3" class="section">
+  <div class="title">
+    <h2>📢 NOTIFICATIONS</h2>
+    <span class="small-count" id="activeNotifCount">0 active</span>
+  </div>
+
+  <div class="notification-section">
+    <h3 style="color:var(--green);margin-bottom:10px;font-family:Orbitron">📣 SEND TO ALL USERS</h3>
+    <div class="notification-box">
+      <input type="text" id="titleAll" placeholder="Notification Title" style="margin-bottom:8px">
+      <textarea id="messageAll" placeholder="Message for all users"></textarea>
+      <input type="text" id="typeAll" placeholder="Type (e.g., update, alert)" value="update" style="margin-top:8px">
+      <div class="button-row" style="margin-top:8px">
+        <button class="btn primary" onclick="sendNotificationToAll()">✅ SEND</button>
+        <button class="btn gray" onclick="clearNotificationAll()">🔄 CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notification-section">
+    <h3 style="color:var(--cyan);margin-bottom:10px;font-family:Orbitron">💬 SEND TO SPECIFIC USER</h3>
+    <div class="notification-box">
+      <input type="text" id="userIdPersonal" placeholder="User ID (from users collection)" style="margin-bottom:8px">
+      <input type="text" id="titlePersonal" placeholder="Notification Title" style="margin-bottom:8px">
+      <textarea id="messagePersonal" placeholder="Personal message"></textarea>
+      <input type="text" id="typePersonal" placeholder="Type (e.g., message)" value="message" style="margin-top:8px">
+      <div class="button-row" style="margin-top:8px">
+        <button class="btn primary" onclick="sendNotificationToPersonal()">✅ SEND</button>
+        <button class="btn gray" onclick="clearNotificationPersonal()">🔄 CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="color:var(--text);margin-bottom:10px;margin-top:15px;font-family:Orbitron">📊 ACTIVE NOTIFICATIONS</h3>
+  <div id="activeNotificationsList"></div>
+</section>
+
+<!-- MORE SECTION -->
+<section id="section-4" class="section">
+  <div class="title">
+    <h2>⚡ MORE OPTIONS</h2>
+  </div>
+  <div class="actions">
+    <div class="action" onclick="viewStats()">
+      <div class="action-icon">📊</div>
+      <div class="action-text">VIEW FULL STATS</div>
+    </div>
+    <div class="action" onclick="showComingSoon()">
+      <div class="action-icon">🚀</div>
+      <div class="action-text">COMING SOON</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- MODALS -->
+<div class="modal" id="statsModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>📊 Full Statistics</h3>
+      <button class="close" onclick="closeStats()">✕</button>
+    </div>
+    <div id="statsContent"></div>
+  </div>
+</div>
+
+<div class="modal" id="editUserModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>✏️ Edit User</h3>
+      <button class="close" onclick="closeEditUser()">✕</button>
+    </div>
+    <div class="edit-user-id" id="editingUserIdDisplay"></div>
+    <label>Name</label>
+    <input type="text" id="editUserName">
+    <label style="margin-top:10px">XP Balance</label>
+    <input type="number" id="editXP">
+    <label style="margin-top:10px">Plan</label>
+    <input type="text" id="editUserPlan">
+    <div class="button-row" style="margin-top:12px">
+      <button class="btn primary" onclick="saveUserChanges()">💾 SAVE</button>
+      <button class="btn gray" onclick="closeEditUser()">❌ CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// FIREBASE CONFIG - APNA CONFIG YAHAN PASTE KAR
+const firebaseConfig = {
+  apiKey: "AIzaSyAXjvXzQ-UYwlyOJuUOO9-gKkuyvUZEZyU",
+  authDomain: "growx-test-5f4a2.firebaseapp.com",
+  projectId: "growx-test-5f4a2",
+  storageBucket: "growx-test-5f4a2.firebasestorage.app",
+  messagingSenderId: "1076103865127",
+  appId: "1:1076103865127:web:bb965218f99b2969a0bf02"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// DATA
+let payments = [];
+let users = [];
+
+// LOAD PAYMENTS
+function startPaymentsListener(){
+  db.collection("payments").onSnapshot(snapshot => {
+    payments = [];
+    snapshot.forEach(doc => {
+      payments.push({id: doc.id, ...doc.data()});
+    });
+    updateStats();
+    renderPayments();
+  }, error => console.error("Payments error:", error));
+}
+
+function renderPayments(){
+  const list = document.getElementById("transactionList");
+  if(!payments || payments.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">💳</div>Koi payment nahi</div>';
+    return;
+  }
+  list.innerHTML = payments.map(p => `
+    <div class="transaction">
+      <div class="transaction-top">
+        <span class="amount">₹${formatNumber(Number(p.amount || 0))}</span>
+        <span class="status ${String(p.status || "").toLowerCase()}">
+          ${String(p.status || "").toUpperCase()}
+        </span>
+      </div>
+      <div class="transaction-info">
+        <div class="detail"><b>User:</b> ${escapeHTML(p.userName || p.userId || "N/A")}</div>
+        <div class="detail"><b>Plan:</b> ${escapeHTML(p.plan || "N/A")}</div>
+        <div class="detail"><b>Reference No (UTR):</b> ${escapeHTML(p.referenceNumber || "N/A")}</div>
+        <div class="detail"><b>Date:</b> ${p.submittedAt ? new Date(p.submittedAt).toLocaleString() : "N/A"}</div>
+        <div class="detail"><b>ID:</b> ${escapeHTML(p.id)}</div>
+      </div>
+      ${String(p.status || "").toLowerCase() === "pending" ? `
+      <div class="user-actions">
+        <button class="btn green" onclick="approvePayment('${escapeJS(p.id)}')">✅ APPROVE</button>
+        <button class="btn red" onclick="rejectPayment('${escapeJS(p.id)}')">❌ REJECT</button>
+      </div>
+      ` : ""}
+    </div>
+  `).join("");
+}
+
+// LOAD USERS
+function startUsersListener(){
+  db.collection("users").onSnapshot(snapshot => {
+    users = [];
+    snapshot.forEach(doc => {
+      users.push({id: doc.id, ...doc.data()});
+    });
+    updateStats();
+    renderUsers();
+  }, error => console.error("Users error:", error));
+}
+
+function renderUsers(){
+  const list = document.getElementById("userList");
+  if(!users || users.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">👥</div>Koi user nahi</div>';
+    return;
+  }
+  list.innerHTML = users.map(u => `
+    <div class="user-card">
+      <div class="user-top">
+        <span class="user-name">${escapeHTML(u.name || u.displayName || u.email || "Unknown")}</span>
+        <span class="user-status ${u.banned ? 'user-banned' : 'user-active'}">
+          ${u.banned ? "🚫 BANNED" : "✅ ACTIVE"}
+        </span>
+      </div>
+      <div class="user-info">
+        <div class="user-detail"><b>Email:</b> ${escapeHTML(u.email || "N/A")}</div>
+        <div class="user-detail"><b>XP:</b> ${u.xp || 0}</div>
+        <div class="user-detail"><b>Plan:</b> ${escapeHTML(u.plan || u.subscription || "free")}</div>
+        <div class="user-detail"><b>ID:</b> ${escapeHTML(u.id)}</div>
+      </div>
+      <div class="user-actions">
+        <button class="btn green" onclick="editUser('${escapeJS(u.id)}')">✏️ EDIT XP</button>
+        ${u.banned ? `
+          <button class="btn green" onclick="unbanUser('${escapeJS(u.id)}')">✅ UNBAN</button>
+        ` : `
+          <button class="btn red" onclick="banUser('${escapeJS(u.id)}')">🚫 BAN</button>
+        `}
+      </div>
+    </div>
+  `).join("");
+}
+
+// EDIT USER
+window.editUser = function(userId){
+  editingUserId = userId;
+  const user = users.find(u => String(u.id) === String(userId));
+  if(!user){
+    alert("User nahi mila");
+    return;
+  }
+  document.getElementById("editingUserIdDisplay").textContent = "UID / Document ID: " + escapeHTML(userId);
+  document.getElementById("editUserName").value = user.name || "";
+  document.getElementById("editXP").value = user.xp || 0;
+  document.getElementById("editUserPlan").value = user.plan || user.subscription || "free";
+  document.getElementById("editUserModal").classList.add("show");
+};
+
+window.closeEditUser = function(){
+  document.getElementById("editUserModal").classList.remove("show");
+};
+
+window.saveUserChanges = async function(){
+  if(!editingUserId){
+    alert("User select nahi hai");
+    return;
+  }
+  const name = document.getElementById("editUserName").value.trim();
+  const xp = Number(document.getElementById("editXP").value);
+  if(!Number.isFinite(xp)){
+    alert("⚠️ XP valid number hona chahiye");
+    return;
+  }
+  if(!confirm("Is user ka XP update karna hai?")){
+    return;
+  }
+  try{
+    await db.collection("users").doc(editingUserId).update({
+      name: name,
+      xp: xp,
+      adminUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ XP Firestore me save ho gaya");
+    closeEditUser();
+  }catch(error){
+    console.error(error);
+    alert("❌ Update failed: " + error.message);
+  }
+};
+
+window.banUser = async function(userId){
+  if(!confirm("Is user ko ban karna hai?")){
+    return;
+  }
+  try{
+    await db.collection("users").doc(userId).update({
+      banned: true,
+      bannedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ User ban ho gaya!");
+  }catch(error){
+    console.error(error);
+    alert("❌ Ban failed: " + error.message);
+  }
+};
+
+window.unbanUser = async function(userId){
+  if(!confirm("Is user ko unban karna hai?")){
+    return;
+  }
+  try{
+    await db.collection("users").doc(userId).update({
+      banned: false,
+      unbannedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ User unban ho gaya!");
+  }catch(error){
+    console.error(error);
+    alert("❌ Unban failed: " + error.message);
+  }
+};
+
+// APPROVE / REJECT PAYMENTS
+const PLAN_DURATION_DAYS = { daily: 1, weekly: 7, monthly: 30 };
+
+window.approvePayment = async function(paymentId){
+  const p = payments.find(x => String(x.id) === String(paymentId));
+  if(!p){ alert("Payment nahi mila"); return; }
+  if(!p.userId){ alert("⚠️ Is payment me userId nahi hai, manually check karo"); return; }
+  if(!confirm("Is payment ko APPROVE karke user ka plan activate karna hai?")) return;
+
+  try{
+    const days = PLAN_DURATION_DAYS[p.plan] || 30;
+    const newExpiry = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+    await db.collection("payments").doc(paymentId).update({
+      status: "verified",
+      verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await db.collection("users").doc(p.userId).update({
+      plan: p.plan,
+      planExpiry: newExpiry,
+      "subscription.status": "active",
+      "subscription.plan": p.plan,
+      "subscription.amount": p.amount || 0
+    });
+
+    alert("✅ Payment approved aur user ka plan activate ho gaya!");
+  }catch(error){
+    console.error(error);
+    alert("❌ Approve failed: " + error.message);
+  }
+};
+
+window.rejectPayment = async function(paymentId){
+  if(!confirm("Is payment ko REJECT karna hai?")) return;
+  try{
+    await db.collection("payments").doc(paymentId).update({
+      status: "rejected",
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ Payment reject ho gaya");
+  }catch(error){
+    console.error(error);
+    alert("❌ Reject failed: " + error.message);
+  }
+};
+
+// UPI SETTINGS
+window.saveUPI = async function(){
+  const upiId = document.getElementById("upiId").value.trim();
+  const upiName = document.getElementById("upiName").value.trim();
+  if(!upiId || !upiName){
+    alert("⚠️ Sab fields fill karo");
+    return;
+  }
+  try{
+    await db.collection("settings").doc("payment").update({
+      upiId: upiId,
+      upiName: upiName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById("currentUPI").innerHTML = `${escapeHTML(upiId)}<br><small>Name: ${escapeHTML(upiName)}</small>`;
+    alert("✅ UPI settings save ho gaye!");
+  }catch(error){
+    console.error(error);
+    alert("❌ Error: " + error.message);
+  }
+};
+
+window.copyUPI = function(){
+  const upi = document.getElementById("upiId").value.trim();
+  if(!upi){
+    alert("⚠️ Pehle UPI ID set karo");
+    return;
+  }
+  navigator.clipboard.writeText(upi);
+  alert("✅ UPI copied!");
+};
+
+// NOTIFICATIONS ✅ FIXED
+let activeNotifications = [];
+
+function startNotificationsListener(){
+  // ✅ FIX: Filter out deleted notifications in the query itself
+  db.collection("notifications")
+    .where("status", "!=", "deleted")
+    .onSnapshot(snapshot => {
+      activeNotifications = [];
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        // Only show sent/active notifications
+        if(data.status === "sent" || data.status === "active"){
+          activeNotifications.push({id: docSnap.id, ...data});
+        }
+      });
+      renderActiveNotifications();
+      updateNotificationsCount();
+    }, error => console.error("Notifications error:", error));
+}
+
+function renderActiveNotifications(){
+  const list = document.getElementById("activeNotificationsList");
+  if(!activeNotifications || activeNotifications.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Koi active notification nahi</div>';
+    return;
+  }
+  list.innerHTML = activeNotifications.map(n => {
+    // ✅ FIX: Display views correctly (multiply by 100)
+    const displayViews = (n.views || 0) * 100;
+    const target = n.sentTo === "all" ? "📢 All Users" : `💬 User: ${escapeHTML(n.userId || "N/A")}`;
+    const date = n.createdAt ? new Date(n.createdAt.toDate()).toLocaleDateString() : "N/A";
+    return `
+      <div class="transaction">
+        <div class="transaction-top">
+          <div>
+            <div style="font-weight:800;color:var(--text)">${escapeHTML(n.title || "N/A")}</div>
+            <div style="font-size:8px;color:var(--muted);margin-top:4px">${escapeHTML(n.message || "").substring(0, 60)}</div>
+          </div>
+          <button class="btn red" onclick="deleteNotification('${escapeJS(n.id)}')">🗑️</button>
+        </div>
+        <div class="transaction-info">
+          <div class="detail"><b>Target:</b> ${target}</div>
+          <div class="detail"><b>Type:</b> ${escapeHTML(n.type || "update")}</div>
+          <div class="detail"><b>Views:</b> ${displayViews}</div>
+          <div class="detail"><b>Date:</b> ${date}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function updateNotificationsCount(){
+  document.getElementById("activeNotifCount").textContent = activeNotifications.length + " active";
+}
+
+window.sendNotificationToAll = async function(){
+  const title = document.getElementById("titleAll").value.trim();
+  const message = document.getElementById("messageAll").value.trim();
+  const type = document.getElementById("typeAll").value.trim();
+  if(!title || !message){
+    alert("⚠️ Title aur Message dono fill karo");
+    return;
+  }
+  try{
+    const notification = {
+      title: title,
+      message: message,
+      type: type || "update",
+      sentTo: "all",
+      views: 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "sent"
+    };
+    const docRef = await db.collection("notifications").add(notification);
+    alert("✅ Notification sabko bhej diya gaya!\nID: " + docRef.id);
+    document.getElementById("titleAll").value = "";
+    document.getElementById("messageAll").value = "";
+    document.getElementById("typeAll").value = "update";
+  }catch(error){
+    console.error(error);
+    alert("❌ Error: " + error.message);
+  }
+};
+
+window.clearNotificationAll = function(){
+  document.getElementById("titleAll").value = "";
+  document.getElementById("messageAll").value = "";
+  document.getElementById("typeAll").value = "update";
+};
+
+window.sendNotificationToPersonal = async function(){
+  const userId = document.getElementById("userIdPersonal").value.trim();
+  const title = document.getElementById("titlePersonal").value.trim();
+  const message = document.getElementById("messagePersonal").value.trim();
+  const type = document.getElementById("typePersonal").value.trim();
+  if(!userId || !title || !message){
+    alert("⚠️ Sab fields fill karo");
+    return;
+  }
+  try{
+    const notification = {
+      userId: userId,
+      title: title,
+      message: message,
+      type: type || "message",
+      sentTo: "personal",
+      views: 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "sent"
+    };
+    const docRef = await db.collection("notifications").add(notification);
+    alert("✅ Personal notification bhej diya!\nID: " + docRef.id);
+    document.getElementById("userIdPersonal").value = "";
+    document.getElementById("titlePersonal").value = "";
+    document.getElementById("messagePersonal").value = "";
+    document.getElementById("typePersonal").value = "message";
+  }catch(error){
+    console.error(error);
+    alert("❌ Error: " + error.message);
+  }
+};
+
+window.clearNotificationPersonal = function(){
+  document.getElementById("userIdPersonal").value = "";
+  document.getElementById("titlePersonal").value = "";
+  document.getElementById("messagePersonal").value = "";
+  document.getElementById("typePersonal").value = "message";
+};
+
+// ✅ FIX: Delete notification by setting status to "deleted"
+window.deleteNotification = async function(notificationId){
+  if(!confirm("Is notification ko delete karna hai? User ko show hona band ho jayega")){
+    return;
+  }
+  try{
+    await db.collection("notifications").doc(notificationId).update({
+      status: "deleted",
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ Notification delete ho gaya!");
+  }catch(error){
+    console.error(error);
+    alert("❌ Delete failed: " + error.message);
+  }
+};
+
+// TABS
+window.switchTab = function(index){
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById("section-" + index).classList.add("active");
+  document.querySelectorAll(".tab")[index].classList.add("active");
+};
+
+// FILTER
+window.filterPayments = function(type){
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+};
+
+window.filterUsers = function(type){
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+};
+
+// STATS
+function updateStats(){
+  const verified = payments.filter(p => String(p.status || "").toUpperCase() === "VERIFIED");
+  const pending = payments.filter(p => String(p.status || "").toUpperCase() === "PENDING");
+  const earnings = verified.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  document.getElementById("totalEarnings").textContent = "₹" + formatNumber(earnings);
+  document.getElementById("verifiedCount").textContent = verified.length;
+  document.getElementById("pendingCount").textContent = pending.length;
+  document.getElementById("userCount").textContent = users.length;
+  document.getElementById("userCountSmall").textContent = users.length + " users";
+  document.getElementById("bannedCount").textContent = users.filter(u => u.banned).length + " banned";
+}
+
+window.viewStats = function(){
+  const verified = payments.filter(p => String(p.status || "").toUpperCase() === "VERIFIED");
+  const pending = payments.filter(p => String(p.status || "").toUpperCase() === "PENDING");
+  const earnings = verified.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const banned = users.filter(u => u.banned === true).length;
+  document.getElementById("statsContent").innerHTML = `
+    <div class="current-upi">
+      <div class="current-label">TOTAL EARNINGS</div>
+      <div class="current-value">₹${formatNumber(earnings)}</div>
+    </div>
+    <div class="transaction-info" style="margin-top:8px">
+      <div class="current-upi">
+        <div class="current-label">VERIFIED</div>
+        <div class="current-value">${verified.length}</div>
+      </div>
+      <div class="current-upi">
+        <div class="current-label">PENDING</div>
+        <div class="current-value">${pending.length}</div>
+      </div>
+      <div class="current-upi">
+        <div class="current-label">USERS</div>
+        <div class="current-value">${users.length}</div>
+      </div>
+      <div class="current-upi">
+        <div class="current-label">BANNED</div>
+        <div class="current-value" style="color:var(--red)">${banned}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById("statsModal").classList.add("show");
+};
+
+window.closeStats = function(){
+  document.getElementById("statsModal").classList.remove("show");
+};
+
+function showComingSoon(){
+  alert("🚀 This feature is coming soon!");
+}
+
+// HELPERS
+function formatNumber(num){
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function escapeHTML(value){
+  return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function escapeJS(value){
+  return String(value).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+}
+
+// INIT
+window.addEventListener("load", async () => {
+  console.log("✅ Admin Panel Load ho gaya");
+  try{
+    startPaymentsListener();
+    startUsersListener();
+    startNotificationsListener();
+    console.log("✅ Sab listeners start ho gaye");
+  }catch(error){
+    console.error("❌ Error:", error);
+  }
+});
+
+let editingUserId = null;
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+</script>
+</body>
+</html>
