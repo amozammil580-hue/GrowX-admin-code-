@@ -53,7 +53,7 @@ button{cursor:pointer;}
 .transaction-info,.user-info{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;}
 .detail,.user-detail{font-size:8px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .detail b,.user-detail b{color:#cfd4dc;}
-.transaction-actions,.user-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
+.user-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
 .btn{border:0;border-radius:8px;padding:7px 10px;font-size:9px;font-weight:800;}
 .green{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.4);}
 .red{background:rgba(255,56,100,.1);color:var(--red);border:1px solid rgba(255,56,100,.4);}
@@ -68,7 +68,6 @@ button{cursor:pointer;}
 label{color:var(--muted);font-size:9px;display:block;margin-bottom:5px;}
 input,textarea{width:100%;background:#0d0f15;border:1px solid var(--border);color:white;padding:10px;border-radius:9px;outline:none;font-size:11px;font-family:inherit;}
 input:focus,textarea:focus{border-color:var(--green);}
-input[readonly]{color:#9da5b4;cursor:not-allowed;opacity:.85;}
 textarea{resize:vertical;min-height:80px;}
 .button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;}
 .current-upi{margin-top:10px;background:#0d0f15;border:1px solid var(--border);border-radius:9px;padding:10px;}
@@ -87,7 +86,6 @@ textarea{resize:vertical;min-height:80px;}
 .modal-head h3{font-family:Orbitron;color:var(--green);font-size:13px;}
 .close{background:none;border:0;color:var(--red);font-size:22px;}
 .edit-user-id{color:var(--muted);font-size:8px;word-break:break-all;margin-bottom:12px;}
-.save-user-btn{width:100%;margin-top:10px;}
 .notification-section{margin-bottom:15px;}
 .notification-box{background:#151820;border:1px solid var(--border);border-radius:10px;padding:13px;}
 @media(min-width:700px){
@@ -95,14 +93,6 @@ textarea{resize:vertical;min-height:80px;}
   .stats{grid-template-columns:repeat(4,1fr);}
   .form-grid{grid-template-columns:1fr 1fr;}
   .transaction-info,.user-info{grid-template-columns:repeat(4,1fr);}
-}
-@media(max-width:360px){
-  body{padding:7px;}
-  .logo{font-size:14px;}
-  .stat{padding:9px;}
-  .stat-value{font-size:17px;}
-  .section{padding:10px;}
-  .tab{font-size:9px;}
 }
 </style>
 </head>
@@ -138,7 +128,7 @@ textarea{resize:vertical;min-height:80px;}
 <div class="tabs">
   <button class="tab active" onclick="switchTab(0)">PAYMENTS</button>
   <button class="tab" onclick="switchTab(1)">USERS</button>
-  <button class="tab" onclick="switchTab(2)">UPI</button>
+  <button class="tab" onclick="switchTab(2)">PLANS & UPI</button>
   <button class="tab" onclick="switchTab(3)">NOTIFICATIONS</button>
   <button class="tab" onclick="switchTab(4)">MORE</button>
 </div>
@@ -171,31 +161,17 @@ textarea{resize:vertical;min-height:80px;}
   <div class="user-list" id="userList"></div>
 </section>
 
-<!-- UPI SECTION -->
+<!-- PLANS & UPI SECTION -->
 <section id="section-2" class="section">
   <div class="title">
-    <h2>⚙️ UPI SETTINGS</h2>
+    <h2>🔒 PLANS & UPI SETTINGS</h2>
   </div>
   <div class="info">
-    UPI settings Firestore ke settings/payment document me save hongi.
+    Yahan se aap har plan ke liye alag UPI ID set kar sakte hain aur plan ko Lock/Unlock bhi kar sakte hain.
   </div>
-  <div class="form-grid">
-    <div>
-      <label>UPI ID</label>
-      <input type="text" id="upiId" placeholder="e.g., name@upi">
-    </div>
-    <div>
-      <label>FULL NAME</label>
-      <input type="text" id="upiName" placeholder="e.g., Your Name">
-    </div>
-  </div>
-  <div class="button-row">
-    <button class="btn primary" onclick="saveUPI()">💾 SAVE UPI</button>
-    <button class="btn gray" onclick="copyUPI()">📋 COPY UPI</button>
-  </div>
-  <div class="current-upi">
-    <div class="current-label">Current UPI</div>
-    <div class="current-value" id="currentUPI">Not set yet</div>
+  <div class="transaction-list" id="planSettingsList"></div>
+  <div style="margin-top:12px;">
+    <button class="btn primary" style="width:100%;padding:10px;" onclick="savePlanSettings()">💾 SAVE PLAN & UPI SETTINGS</button>
   </div>
 </section>
 
@@ -290,7 +266,7 @@ textarea{resize:vertical;min-height:80px;}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-// FIREBASE CONFIG - APNA CONFIG YAHAN PASTE KAR
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAXjvXzQ-UYwlyOJuUOO9-gKkuyvUZEZyU",
   authDomain: "growx-test-5f4a2.firebaseapp.com",
@@ -306,6 +282,16 @@ const db = firebase.firestore();
 // DATA
 let payments = [];
 let users = [];
+
+// ALL PLANS DEFINITION WITH UPI ID SUPPORT
+let plansData = [
+  { id: 'daily_free', name: 'Daily Plan - Free', price: '₹0', category: 'Daily', locked: false, upiId: '' },
+  { id: 'daily_basic', name: 'Daily Plan - Basic', price: '₹5', category: 'Daily', locked: false, upiId: '' },
+  { id: 'daily_gold', name: 'Daily Plan - Gold', price: '₹30', category: 'Daily', locked: false, upiId: '' },
+  { id: 'daily_premium', name: 'Daily Plan - Premium', price: '₹50', category: 'Daily', locked: false, upiId: '' },
+  { id: 'weekly', name: 'Weekly Plan', price: '₹150', category: 'Weekly', locked: false, upiId: '' },
+  { id: 'monthly', name: 'Monthly Plan', price: '₹700', category: 'Monthly', locked: false, upiId: '' }
+];
 
 // LOAD PAYMENTS
 function startPaymentsListener(){
@@ -474,7 +460,7 @@ window.unbanUser = async function(userId){
 };
 
 // APPROVE / REJECT PAYMENTS
-const PLAN_DURATION_DAYS = { daily: 1, weekly: 7, monthly: 30 };
+const PLAN_DURATION_DAYS = { daily_free: 1, daily_basic: 1, daily_gold: 1, daily_premium: 1, daily: 1, weekly: 7, monthly: 30 };
 
 window.approvePayment = async function(paymentId){
   const p = payments.find(x => String(x.id) === String(paymentId));
@@ -520,51 +506,95 @@ window.rejectPayment = async function(paymentId){
   }
 };
 
-// UPI SETTINGS
-window.saveUPI = async function(){
-  const upiId = document.getElementById("upiId").value.trim();
-  const upiName = document.getElementById("upiName").value.trim();
-  if(!upiId || !upiName){
-    alert("⚠️ Sab fields fill karo");
+// PLANS & UPI SETTINGS LISTENER
+function startPlanSettingsListener(){
+  db.collection("settings").doc("plans").onSnapshot(doc => {
+    if(doc.exists){
+      const data = doc.data();
+      plansData = plansData.map(plan => ({
+        ...plan,
+        locked: data.locks ? !!data.locks[plan.id] : plan.locked,
+        upiId: data.upiIds && data.upiIds[plan.id] ? data.upiIds[plan.id] : plan.upiId
+      }));
+    }
+    renderPlanSettings();
+  }, error => {
+    console.error("Plan settings listener error:", error);
+    renderPlanSettings();
+  });
+}
+
+function renderPlanSettings(){
+  const list = document.getElementById("planSettingsList");
+  if(!plansData || plansData.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔒</div>Koi plan nahi mila</div>';
     return;
   }
+  list.innerHTML = plansData.map(plan => `
+    <div class="transaction" style="padding:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:800;color:var(--text);font-size:11px;">${escapeHTML(plan.name)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">Price: <b>${escapeHTML(plan.price)}</b> | Category: ${escapeHTML(plan.category)}</div>
+        </div>
+        <button class="btn ${plan.locked ? 'red' : 'green'}" onclick="togglePlanLock('${escapeJS(plan.id)}')">
+          ${plan.locked ? '🔒 LOCKED' : '🔓 UNLOCKED'}
+        </button>
+      </div>
+      <div style="margin-top:8px;">
+        <label style="font-size:8px;color:var(--muted);margin-bottom:3px;">UPI ID for ${escapeHTML(plan.name)}</label>
+        <input type="text" id="upiInput_${plan.id}" value="${escapeHTML(plan.upiId || '')}" placeholder="e.g. merchant@upi" style="font-size:10px;padding:8px;">
+      </div>
+    </div>
+  `).join("");
+}
+
+window.togglePlanLock = function(planId){
+  plansData = plansData.map(plan => {
+    if(plan.id === planId){
+      return { ...plan, locked: !plan.locked };
+    }
+    return plan;
+  });
+  renderPlanSettings();
+};
+
+window.savePlanSettings = async function(){
   try{
-    await db.collection("settings").doc("payment").update({
-      upiId: upiId,
-      upiName: upiName,
-      upi: firebase.firestore.FieldValue.delete(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    let locksObj = {};
+    let upiObj = {};
+    plansData.forEach(plan => {
+      locksObj[plan.id] = plan.locked;
+      const inputEl = document.getElementById(`upiInput_${plan.id}`);
+      if(inputEl){
+        plan.upiId = inputEl.value.trim();
+      }
+      upiObj[plan.id] = plan.upiId;
     });
-    document.getElementById("currentUPI").innerHTML = `${escapeHTML(upiId)}<br><small>Name: ${escapeHTML(upiName)}</small>`;
-    alert("✅ UPI settings save ho gaye!");
+
+    await db.collection("settings").doc("plans").set({
+      locks: locksObj,
+      upiIds: upiObj,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    alert("✅ Plan locks aur UPI IDs successfully save ho gaye!");
   }catch(error){
     console.error(error);
-    alert("❌ Error: " + error.message);
+    alert("❌ Save failed: " + error.message);
   }
 };
 
-window.copyUPI = function(){
-  const upi = document.getElementById("upiId").value.trim();
-  if(!upi){
-    alert("⚠️ Pehle UPI ID set karo");
-    return;
-  }
-  navigator.clipboard.writeText(upi);
-  alert("✅ UPI copied!");
-};
-
-// NOTIFICATIONS ✅ FIXED
+// NOTIFICATIONS
 let activeNotifications = [];
 
 function startNotificationsListener(){
-  // ✅ FIX: Filter out deleted notifications in the query itself
   db.collection("notifications")
     .where("status", "!=", "deleted")
     .onSnapshot(snapshot => {
       activeNotifications = [];
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        // Only show sent/active notifications
         if(data.status === "sent" || data.status === "active"){
           activeNotifications.push({id: docSnap.id, ...data});
         }
@@ -581,7 +611,6 @@ function renderActiveNotifications(){
     return;
   }
   list.innerHTML = activeNotifications.map(n => {
-    // ✅ FIX: Display views correctly (multiply by 100)
     const displayViews = (n.views || 0) * 100;
     const target = n.sentTo === "all" ? "📢 All Users" : `💬 User: ${escapeHTML(n.userId || "N/A")}`;
     const date = n.createdAt ? new Date(n.createdAt.toDate()).toLocaleDateString() : "N/A";
@@ -683,7 +712,6 @@ window.clearNotificationPersonal = function(){
   document.getElementById("typePersonal").value = "message";
 };
 
-// ✅ FIX: Delete notification by setting status to "deleted"
 window.deleteNotification = async function(notificationId){
   if(!confirm("Is notification ko delete karna hai? User ko show hona band ho jayega")){
     return;
@@ -792,6 +820,7 @@ window.addEventListener("load", async () => {
     startPaymentsListener();
     startUsersListener();
     startNotificationsListener();
+    startPlanSettingsListener();
     console.log("✅ Sab listeners start ho gaye");
   }catch(error){
     console.error("❌ Error:", error);
@@ -799,9 +828,6 @@ window.addEventListener("load", async () => {
 });
 
 let editingUserId = null;
-let logoClickCount = 0;
-let logoClickTimer = null;
-
 </script>
 </body>
 </html>
