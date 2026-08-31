@@ -532,6 +532,7 @@ window.saveUPI = async function(){
     await db.collection("settings").doc("payment").update({
       upiId: upiId,
       upiName: upiName,
+      upi: firebase.firestore.FieldValue.delete(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     document.getElementById("currentUPI").innerHTML = `${escapeHTML(upiId)}<br><small>Name: ${escapeHTML(upiName)}</small>`;
