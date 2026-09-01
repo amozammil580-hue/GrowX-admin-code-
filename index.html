@@ -131,7 +131,8 @@ textarea{resize:vertical;min-height:80px;}
   <button class="tab" onclick="switchTab(2)">PLANS & UPI</button>
   <button class="tab" onclick="switchTab(3)">NOTIFICATIONS</button>
   <button class="tab" onclick="switchTab(4)">MORE</button>
-  <button class="tab" onclick="switchTab(5)">🔐 RULES UPDATE</button>
+  <button class="tab" onclick="switchTab(5)">💎 X TOKEN RECHARGES</button>
+  <button class="tab" onclick="switchTab(6)">🔐 RULES UPDATE</button>
 </div>
 
 <!-- PAYMENTS SECTION -->
@@ -231,8 +232,22 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 </section>
 
-<!-- RULES UPDATE SECTION -->
+<!-- X TOKEN RECHARGES SECTION -->
 <section id="section-5" class="section">
+  <div class="title">
+    <h2>💎 X TOKEN RECHARGES</h2>
+    <span class="small-count" id="xtokenCountSmall">0 requests</span>
+  </div>
+  <div class="filter">
+    <button class="filter-btn active" onclick="filterXTokens('all')">All</button>
+    <button class="filter-btn" onclick="filterXTokens('pending')">Pending</button>
+    <button class="filter-btn" onclick="filterXTokens('verified')">Verified</button>
+  </div>
+  <div class="transaction-list" id="xtokenList"></div>
+</section>
+
+<!-- RULES UPDATE SECTION -->
+<section id="section-6" class="section">
   <div class="title">
     <h2>🔐 RULES UPDATE</h2>
   </div>
@@ -329,6 +344,7 @@ const db = firebase.firestore();
 // DATA
 let payments = [];
 let users = [];
+let xtokens = [];
 
 // ALL PLANS DEFINITION WITH UPI ID SUPPORT
 let plansData = [
@@ -382,6 +398,109 @@ function renderPayments(){
     </div>
   `).join("");
 }
+
+// ============ X TOKEN RECHARGES ============
+function startXTokensListener(){
+  db.collection("xtoken_recharges").onSnapshot(snapshot => {
+    xtokens = [];
+    snapshot.forEach(doc => {
+      xtokens.push({id: doc.id, ...doc.data()});
+    });
+    updateXTokenStats();
+    renderXTokens();
+  }, error => console.error("X Tokens error:", error));
+}
+
+function renderXTokens(){
+  const list = document.getElementById("xtokenList");
+  if(!xtokens || xtokens.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">💎</div>Koi X Token recharge request nahi</div>';
+    return;
+  }
+  list.innerHTML = xtokens.map(x => `
+    <div class="transaction">
+      <div class="transaction-top">
+        <span class="amount">₹${formatNumber(Number(x.amount || 0))}</span>
+        <span class="status ${String(x.status || "").toLowerCase()}">
+          ${String(x.status || "").toUpperCase()}
+        </span>
+      </div>
+      <div class="transaction-info">
+        <div class="detail"><b>User:</b> ${escapeHTML(x.userName || x.userId || "N/A")}</div>
+        <div class="detail"><b>Tokens:</b> ${escapeHTML(x.tokens || "0")}</div>
+        <div class="detail"><b>Reference (UTR):</b> ${escapeHTML(x.referenceNumber || "N/A")}</div>
+        <div class="detail"><b>Date:</b> ${x.submittedAt ? new Date(x.submittedAt).toLocaleString() : "N/A"}</div>
+        <div class="detail"><b>ID:</b> ${escapeHTML(x.id)}</div>
+      </div>
+      ${String(x.status || "").toLowerCase() === "pending" ? `
+      <div class="user-actions">
+        <button class="btn green" onclick="approveXToken('${escapeJS(x.id)}')">✅ APPROVE</button>
+        <button class="btn red" onclick="rejectXToken('${escapeJS(x.id)}')">❌ REJECT</button>
+      </div>
+      ` : ""}
+    </div>
+  `).join("");
+}
+
+window.filterXTokens = function(type){
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+};
+
+function updateXTokenStats(){
+  const xtokenPending = xtokens.filter(x => String(x.status || "").toUpperCase() === "PENDING");
+  document.getElementById("xtokenCountSmall").textContent = xtokenPending.length + " pending";
+}
+
+window.approveXToken = async function(xtokenId){
+  const x = xtokens.find(t => String(t.id) === String(xtokenId));
+  if(!x){ alert("X Token request nahi mila"); return; }
+  if(!x.userId){ alert("⚠️ Is request me userId nahi hai, manually check karo"); return; }
+  if(!confirm(`Is user ko ${x.tokens || 0} X Tokens approve karke dene hain?`)) return;
+
+  try{
+    // Update X Token recharge status
+    await db.collection("xtoken_recharges").doc(xtokenId).update({
+      status: "verified",
+      verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Add tokens to user's xtoken_balance
+    const userDoc = await db.collection("users").doc(x.userId).get();
+    const currentBalance = userDoc.exists ? (userDoc.data().xtokenBalance || 0) : 0;
+    const newBalance = currentBalance + Number(x.tokens || 0);
+
+    await db.collection("users").doc(x.userId).update({
+      xtokenBalance: newBalance,
+      "xtokenHistory": firebase.firestore.FieldValue.arrayUnion({
+        type: "admin_approved",
+        amount: x.tokens || 0,
+        referenceId: xtokenId,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      })
+    });
+
+    alert(`✅ X Token approved! User ko ${x.tokens || 0} tokens add ho gaye!`);
+  }catch(error){
+    console.error(error);
+    alert("❌ Approve failed: " + error.message);
+  }
+};
+
+window.rejectXToken = async function(xtokenId){
+  const x = xtokens.find(t => String(t.id) === String(xtokenId));
+  if(!confirm("Is X Token request ko REJECT karna hai?")) return;
+  try{
+    await db.collection("xtoken_recharges").doc(xtokenId).update({
+      status: "rejected",
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("✅ X Token request reject ho gaya");
+  }catch(error){
+    console.error(error);
+    alert("❌ Reject failed: " + error.message);
+  }
+};
 
 // LOAD USERS
 function startUsersListener(){
@@ -950,10 +1069,11 @@ window.addEventListener("load", async () => {
   try{
     startPaymentsListener();
     startUsersListener();
+    startXTokensListener();
     startNotificationsListener();
     startPlanSettingsListener();
     startRulesListener();
-    console.log("✅ Sab listeners start ho gaye including Rules");
+    console.log("✅ Sab listeners start ho gaye including X Tokens aur Rules");
   }catch(error){
     console.error("❌ Error:", error);
   }
