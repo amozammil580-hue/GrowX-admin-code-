@@ -406,6 +406,12 @@ function startXTokensListener(){
     snapshot.forEach(doc => {
       xtokens.push({id: doc.id, ...doc.data()});
     });
+    // Latest request TOP pe, oldest BOTTOM pe
+    xtokens.sort((a, b) => {
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateB - dateA;
+    });
     updateXTokenStats();
     renderXTokens();
   }, error => console.error("X Tokens error:", error));
@@ -443,8 +449,42 @@ function renderXTokens(){
 }
 
 window.filterXTokens = function(type){
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#section-5 .filter-btn").forEach(b => b.classList.remove("active"));
   event.target.classList.add("active");
+  let filtered = xtokens;
+  if(type === 'pending'){
+    filtered = xtokens.filter(x => String(x.status || "").toLowerCase() === "pending");
+  } else if(type === 'verified'){
+    filtered = xtokens.filter(x => String(x.status || "").toLowerCase() === "verified");
+  }
+  const list = document.getElementById("xtokenList");
+  if(!filtered || filtered.length === 0){
+    list.innerHTML = '<div class="empty"><div class="empty-icon">💎</div>Koi request nahi mila</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(x => `
+    <div class="transaction">
+      <div class="transaction-top">
+        <span class="amount">₹${formatNumber(Number(x.amount || 0))}</span>
+        <span class="status ${String(x.status || "").toLowerCase()}">
+          ${String(x.status || "").toUpperCase()}
+        </span>
+      </div>
+      <div class="transaction-info">
+        <div class="detail"><b>User:</b> ${escapeHTML(x.userName || x.userId || "N/A")}</div>
+        <div class="detail"><b>Tokens:</b> ${escapeHTML(x.tokens || "0")}</div>
+        <div class="detail"><b>Reference (UTR):</b> ${escapeHTML(x.referenceNumber || "N/A")}</div>
+        <div class="detail"><b>Date:</b> ${x.submittedAt ? new Date(x.submittedAt).toLocaleString() : "N/A"}</div>
+        <div class="detail"><b>ID:</b> ${escapeHTML(x.id)}</div>
+      </div>
+      ${String(x.status || "").toLowerCase() === "pending" ? `
+      <div class="user-actions">
+        <button class="btn green" onclick="approveXToken('${escapeJS(x.id)}')">✅ APPROVE</button>
+        <button class="btn red" onclick="rejectXToken('${escapeJS(x.id)}')">❌ REJECT</button>
+      </div>
+      ` : ""}
+    </div>
+  `).join("");
 };
 
 function updateXTokenStats(){
@@ -476,7 +516,7 @@ window.approveXToken = async function(xtokenId){
         type: "admin_approved",
         amount: x.tokens || 0,
         referenceId: xtokenId,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        timestamp: new Date().toISOString()
       })
     });
 
