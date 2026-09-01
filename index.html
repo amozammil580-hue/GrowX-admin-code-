@@ -131,6 +131,7 @@ textarea{resize:vertical;min-height:80px;}
   <button class="tab" onclick="switchTab(2)">PLANS & UPI</button>
   <button class="tab" onclick="switchTab(3)">NOTIFICATIONS</button>
   <button class="tab" onclick="switchTab(4)">MORE</button>
+  <button class="tab" onclick="switchTab(5)">🔐 RULES UPDATE</button>
 </div>
 
 <!-- PAYMENTS SECTION -->
@@ -227,6 +228,52 @@ textarea{resize:vertical;min-height:80px;}
       <div class="action-icon">🚀</div>
       <div class="action-text">COMING SOON</div>
     </div>
+  </div>
+</section>
+
+<!-- RULES UPDATE SECTION -->
+<section id="section-5" class="section">
+  <div class="title">
+    <h2>🔐 RULES UPDATE</h2>
+  </div>
+  <div class="info">
+    Yahan se aap app ke privacy, terms, policy aur guidelines update kar sakte hain. Sab changes direct Firestore mein save honge.
+  </div>
+  
+  <div class="form-grid">
+    <!-- PRIVACY POLICY -->
+    <div style="background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <label style="color:var(--green);font-weight:700;">📋 PRIVACY POLICY</label>
+      <textarea id="privacyInput" placeholder="Privacy policy ko yahan likho..." style="margin-top:8px;"></textarea>
+    </div>
+
+    <!-- TERMS & CONDITIONS -->
+    <div style="background:rgba(0,217,255,.05);border:1px solid rgba(0,217,255,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <label style="color:var(--cyan);font-weight:700;">📋 TERMS & CONDITIONS</label>
+      <textarea id="termsInput" placeholder="Terms aur conditions likho..." style="margin-top:8px;"></textarea>
+    </div>
+
+    <!-- COMPANY POLICY -->
+    <div style="background:rgba(255,212,59,.05);border:1px solid rgba(255,212,59,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <label style="color:var(--yellow);font-weight:700;">📋 COMPANY POLICY</label>
+      <textarea id="policyInput" placeholder="Company policy likho..." style="margin-top:8px;"></textarea>
+    </div>
+
+    <!-- APP GUIDELINES -->
+    <div style="background:rgba(255,56,100,.05);border:1px solid rgba(255,56,100,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <label style="color:var(--red);font-weight:700;">📋 APP GUIDELINES</label>
+      <textarea id="guidelinesInput" placeholder="App guidelines likho..." style="margin-top:8px;"></textarea>
+    </div>
+  </div>
+
+  <div class="button-row" style="margin-top:15px;">
+    <button class="btn primary" onclick="saveRulesUpdate()" style="width:100%;padding:12px;">💾 SAVE ALL RULES</button>
+    <button class="btn gray" onclick="clearRulesForm()" style="width:100%;padding:12px;">🔄 CLEAR FORM</button>
+  </div>
+
+  <div style="margin-top:15px;background:#151820;border:1px solid var(--border);border-radius:10px;padding:12px;">
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">📝 LAST UPDATED:</div>
+    <div id="rulesLastUpdated" style="font-size:11px;color:var(--green);word-break:break-all;">Loading...</div>
   </div>
 </section>
 </div>
@@ -796,6 +843,90 @@ window.closeStats = function(){
   document.getElementById("statsModal").classList.remove("show");
 };
 
+// ============ RULES UPDATE FUNCTIONS ============
+let rulesData = {
+  privacy: "",
+  terms: "",
+  policy: "",
+  guidelines: "",
+  updatedAt: null
+};
+
+function startRulesListener(){
+  try{
+    db.collection("appRules").doc("rulesContent").onSnapshot((doc) => {
+      if(doc.exists){
+        rulesData = doc.data();
+        console.log("✅ Rules data loaded:", rulesData);
+        loadRulesIntoForm();
+        updateRulesLastUpdated();
+      }else{
+        console.log("No rules found, showing empty form");
+        loadRulesIntoForm();
+      }
+    }, (error) => {
+      console.error("❌ Rules listener error:", error);
+    });
+  }catch(error){
+    console.error("❌ Error starting rules listener:", error);
+  }
+}
+
+function loadRulesIntoForm(){
+  document.getElementById("privacyInput").value = rulesData.privacy || "";
+  document.getElementById("termsInput").value = rulesData.terms || "";
+  document.getElementById("policyInput").value = rulesData.policy || "";
+  document.getElementById("guidelinesInput").value = rulesData.guidelines || "";
+}
+
+function updateRulesLastUpdated(){
+  if(rulesData.updatedAt){
+    const date = new Date(rulesData.updatedAt.toDate());
+    const formatted = date.toLocaleString('en-IN');
+    document.getElementById("rulesLastUpdated").textContent = formatted;
+  }else{
+    document.getElementById("rulesLastUpdated").textContent = "Abhi tak update nahi hua";
+  }
+}
+
+window.saveRulesUpdate = async function(){
+  const privacy = document.getElementById("privacyInput").value.trim();
+  const terms = document.getElementById("termsInput").value.trim();
+  const policy = document.getElementById("policyInput").value.trim();
+  const guidelines = document.getElementById("guidelinesInput").value.trim();
+
+  if(!privacy && !terms && !policy && !guidelines){
+    alert("⚠️ Kam se kam ek field fill karo!");
+    return;
+  }
+
+  try{
+    await db.collection("appRules").doc("rulesContent").set({
+      privacy: privacy,
+      terms: terms,
+      policy: policy,
+      guidelines: guidelines,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    alert("✅ Sab rules successfully save ho gaye!");
+    console.log("✅ Rules saved to Firestore");
+  }catch(error){
+    console.error("❌ Save error:", error);
+    alert("❌ Error: " + error.message);
+  }
+};
+
+window.clearRulesForm = function(){
+  if(confirm("Form ko clear karna hai? Firestore mein likhe data delete nahi hoga.")){
+    document.getElementById("privacyInput").value = "";
+    document.getElementById("termsInput").value = "";
+    document.getElementById("policyInput").value = "";
+    document.getElementById("guidelinesInput").value = "";
+    console.log("✅ Form cleared");
+  }
+};
+
 function showComingSoon(){
   alert("🚀 This feature is coming soon!");
 }
@@ -821,7 +952,8 @@ window.addEventListener("load", async () => {
     startUsersListener();
     startNotificationsListener();
     startPlanSettingsListener();
-    console.log("✅ Sab listeners start ho gaye");
+    startRulesListener();
+    console.log("✅ Sab listeners start ho gaye including Rules");
   }catch(error){
     console.error("❌ Error:", error);
   }
